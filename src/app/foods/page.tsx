@@ -6,7 +6,7 @@ import { addFromOpenFoodFactsAction } from "@/app/foods/actions";
 import { requireAuthUser } from "@/lib/auth/session";
 import { calculateNutris } from "@/lib/nutris/calculate";
 import { normalizeOffProduct } from "@/lib/openfoodfacts/normalize";
-import { searchProductsByName } from "@/lib/openfoodfacts/client";
+import { OpenFoodFactsError, searchProductsByName } from "@/lib/openfoodfacts/client";
 
 type FoodsPageProps = {
   searchParams: Promise<{ q?: string }>;
@@ -17,10 +17,25 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
 
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
+  let searchError: string | null = null;
+  let products: Array<{
+    externalId: string;
+    name: string;
+    brand: string | null;
+    caloriesKcal: number;
+    sugarsG: number;
+    proteinsG: number;
+    fiberG: number;
+    saturatedFatG: number;
+    fatG: number;
+    imageUrl: string | null;
+    nutris: number;
+  }> = [];
 
-  const products =
-    query.length >= 2
-      ? (await searchProductsByName(query)).products
+  if (query.length >= 2) {
+    try {
+      products =
+        (await searchProductsByName(query)).products
           ?.slice(0, 8)
           .map((product) => {
             const normalized = normalizeOffProduct(product);
@@ -35,8 +50,15 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
                 fiberG: normalized.fiberG,
               }),
             };
-          })
-      : [];
+          }) ?? [];
+    } catch (error) {
+      if (error instanceof OpenFoodFactsError && error.status === 503) {
+        searchError = "OpenFoodFacts est temporairement indisponible (503). Reessaie dans quelques secondes.";
+      } else {
+        searchError = "Impossible de recuperer les aliments pour le moment.";
+      }
+    }
+  }
 
   return (
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10 md:px-10">
@@ -62,6 +84,7 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
       {query.length > 0 && query.length < 2 ? (
         <p className="text-sm text-muted-foreground">Saisis au moins 2 caracteres.</p>
       ) : null}
+      {searchError ? <p className="text-sm text-destructive">{searchError}</p> : null}
 
       <section className="grid gap-4 md:grid-cols-2">
         {(products ?? []).map((item) => (
