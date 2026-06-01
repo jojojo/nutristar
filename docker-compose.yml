@@ -1,0 +1,16 @@
+services:
+  db:
+    image: postgres:16
+    container_name: nutristar-db
+    restart: unless-stopped
+    ports:
+      - "5432:5432"
+    environment:
+      POSTGRES_DB: nutristar
+      POSTGRES_USER: nutristar
+      POSTGRES_PASSWORD: nutristar
+    volumes:
+      - nutristar_db_data:/var/lib/postgresql/data
+
+volumes:
+  nutristar_db_data:
