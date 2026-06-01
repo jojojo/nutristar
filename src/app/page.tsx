@@ -51,14 +51,23 @@ export default function Home() {
         <Separator />
 
         <section className="flex flex-wrap gap-3">
+          <Link href="/login">
+            <Button>Connexion</Button>
+          </Link>
+          <Link href="/signup">
+            <Button variant="outline">Inscription</Button>
+          </Link>
           <Link href="/api/foods/search?q=yaourt">
-            <Button>Tester OpenFoodFacts API</Button>
+            <Button variant="outline">Tester OpenFoodFacts API</Button>
           </Link>
           <Link href="/foods">
             <Button variant="outline">Recherche aliments</Button>
           </Link>
           <Link href="/dashboard">
             <Button variant="outline">Dashboard Nutris</Button>
+          </Link>
+          <Link href="/journal">
+            <Button variant="outline">Journal repas</Button>
           </Link>
           <Link href="/weight">
             <Button variant="outline">Suivi poids</Button>

@@ -1,6 +1,7 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { requireAuthUser } from "@/lib/auth/session";
 import { calculateNutris } from "@/lib/nutris/calculate";
 import { normalizeOffProduct } from "@/lib/openfoodfacts/normalize";
 import { searchProductsByName } from "@/lib/openfoodfacts/client";
@@ -10,6 +11,8 @@ type FoodsPageProps = {
 };
 
 export default async function FoodsPage({ searchParams }: FoodsPageProps) {
+  await requireAuthUser();
+
   const { q } = await searchParams;
   const query = q?.trim() ?? "";
 
@@ -41,7 +44,7 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight">Recherche aliments</h1>
         <p className="text-muted-foreground">
-          Cherche un produit pour estimer ses Nutris et l'ajouter au journal ensuite.
+          Cherche un produit pour estimer ses Nutris et l&apos;ajouter au journal ensuite.
         </p>
       </header>
 

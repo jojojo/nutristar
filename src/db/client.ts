@@ -1,15 +1,26 @@
 import { drizzle } from "drizzle-orm/postgres-js";
 import postgres from "postgres";
 
-const connectionString = process.env.DATABASE_URL;
+type DbClient = ReturnType<typeof drizzle>;
 
-if (!connectionString) {
-  throw new Error("DATABASE_URL is required to initialize the database client.");
+let db: DbClient | null = null;
+
+export function getDb() {
+  if (db) {
+    return db;
+  }
+
+  const connectionString = process.env.DATABASE_URL;
+  if (!connectionString) {
+    throw new Error("DATABASE_URL is required to initialize the database client.");
+  }
+
+  const sql = postgres(connectionString, {
+    prepare: false,
+    max: 10,
+  });
+
+  db = drizzle({ client: sql });
+
+  return db;
 }
-
-const sql = postgres(connectionString, {
-  prepare: false,
-  max: 10,
-});
-
-export const db = drizzle({ client: sql });

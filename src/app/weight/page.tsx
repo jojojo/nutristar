@@ -1,5 +1,6 @@
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { requireAuthUser } from "@/lib/auth/session";
 
 const mockWeights = [
   { date: "2026-05-26", kg: 82.4 },
@@ -8,7 +9,11 @@ const mockWeights = [
   { date: "2026-06-01", kg: 81.6 },
 ];
 
-export default function WeightPage() {
+export const dynamic = "force-dynamic";
+
+export default async function WeightPage() {
+  await requireAuthUser();
+
   const first = mockWeights[0]?.kg ?? 0;
   const last = mockWeights[mockWeights.length - 1]?.kg ?? 0;
   const delta = Number((last - first).toFixed(1));

@@ -22,6 +22,19 @@ Application web perso de suivi nutritionnel inspiree WW, avec systeme de points 
 	- `/foods` (recherche OpenFoodFacts server-side + estimation Nutris)
 	- `/weight` (suivi poids simplifie, mock)
 
+## Ce qui est implemente (iteration 2)
+
+- Auth.js credentials:
+	- `POST /api/auth/register` pour creation de compte
+	- `api/auth/[...nextauth]` pour connexion session JWT
+	- pages `/login` et `/signup`
+	- middleware de protection sur `/dashboard`, `/foods`, `/weight`, `/journal`
+- Journal persistant (`/journal`):
+	- ajout manuel d'entree repas (base PostgreSQL)
+	- suppression d'entree
+	- recalcul automatique budget/consomme/restant
+- Dashboard branche sur les donnees persistantes du jour
+
 ## Lancer en local
 
 1. Copier les variables d'environnement:
@@ -50,6 +63,13 @@ npm run dev
 ```
 
 Puis ouvrir `http://localhost:3000`.
+
+## Flux de test rapide (auth + journal)
+
+1. Ouvrir `/signup` et creer un compte.
+2. Se connecter via `/login`.
+3. Aller sur `/journal` et ajouter un aliment manuel.
+4. Verifier la mise a jour des Nutris sur `/journal` puis `/dashboard`.
 
 ## Scripts utiles
 
