@@ -35,6 +35,14 @@ Application web perso de suivi nutritionnel inspiree WW, avec systeme de points 
 	- recalcul automatique budget/consomme/restant
 - Dashboard branche sur les donnees persistantes du jour
 
+## Ce qui est implemente (iteration 3)
+
+- Flux direct OpenFoodFacts -> Journal:
+	- depuis `/foods`, ajout d'un produit au journal en 1 action
+	- choix type de repas et quantite (g)
+	- persistance en source `openfoodfacts`
+	- recalcul automatique dashboard/journal apres ajout
+
 ## Lancer en local
 
 1. Copier les variables d'environnement:

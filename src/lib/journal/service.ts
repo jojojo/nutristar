@@ -70,6 +70,9 @@ type CreateManualEntryInput = {
   userId: string;
   mealType: "petit_dejeuner" | "dejeuner" | "diner" | "collation";
   name: string;
+  brand?: string | null;
+  sourceExternalId?: string | null;
+  source: "manual" | "openfoodfacts";
   quantityG: number;
   caloriesKcal100g: number;
   sugarG100g: number;
@@ -78,7 +81,7 @@ type CreateManualEntryInput = {
   fatG100g: number;
 };
 
-export async function createManualMealEntry(input: CreateManualEntryInput) {
+async function createMealEntry(input: CreateManualEntryInput) {
   const db = getDb();
   const dailyLog = await getOrCreateDailyLog(input.userId);
 
@@ -99,9 +102,10 @@ export async function createManualMealEntry(input: CreateManualEntryInput) {
   const [food] = await db
     .insert(foods)
     .values({
-      source: "manual",
+      source: input.source,
+      sourceExternalId: input.sourceExternalId ?? null,
       name: input.name,
-      brand: null,
+      brand: input.brand ?? null,
     })
     .returning({ id: foods.id });
 
@@ -117,6 +121,22 @@ export async function createManualMealEntry(input: CreateManualEntryInput) {
   });
 
   await recalculateDailyLog(dailyLog.id);
+}
+
+type BaseEntryInput = Omit<CreateManualEntryInput, "source">;
+
+export async function createManualMealEntry(input: BaseEntryInput) {
+  await createMealEntry({
+    ...input,
+    source: "manual",
+  });
+}
+
+export async function createOpenFoodFactsMealEntry(input: BaseEntryInput) {
+  await createMealEntry({
+    ...input,
+    source: "openfoodfacts",
+  });
 }
 
 export async function deleteMealEntry(userId: string, entryId: string) {
