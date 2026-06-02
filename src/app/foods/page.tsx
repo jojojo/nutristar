@@ -5,6 +5,7 @@ import { Input } from "@/components/ui/input";
 import { addFromOpenFoodFactsAction } from "@/app/foods/actions";
 import { requireAuthUser } from "@/lib/auth/session";
 import { calculateNutris } from "@/lib/nutris/calculate";
+import { searchLocalFoodsByName } from "@/lib/foods/local-search";
 import { normalizeOffProduct } from "@/lib/openfoodfacts/normalize";
 import { OpenFoodFactsError, searchProductsByName } from "@/lib/openfoodfacts/client";
 
@@ -19,6 +20,7 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
   const query = q?.trim() ?? "";
   let searchError: string | null = null;
   let products: Array<{
+    source: "openfoodfacts" | "custom";
     externalId: string;
     name: string;
     brand: string | null;
@@ -33,14 +35,26 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
   }> = [];
 
   if (query.length >= 2) {
+    const localProducts = (await searchLocalFoodsByName(query, 10)).map((item) => ({
+      ...item,
+      nutris: calculateNutris({
+        caloriesKcal: item.caloriesKcal,
+        saturatedFatG: item.saturatedFatG,
+        sugarG: item.sugarsG,
+        proteinG: item.proteinsG,
+        fiberG: item.fiberG,
+      }),
+    }));
+
     try {
-      products =
+      const offProducts =
         (await searchProductsByName(query)).products
-          ?.slice(0, 8)
+          ?.slice(0, 10)
           .map((product) => {
             const normalized = normalizeOffProduct(product);
 
             return {
+              source: "openfoodfacts" as const,
               ...normalized,
               nutris: calculateNutris({
                 caloriesKcal: normalized.caloriesKcal,
@@ -51,11 +65,21 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
               }),
             };
           }) ?? [];
+
+      products = [...localProducts, ...offProducts];
     } catch (error) {
+      products = localProducts;
+
       if (error instanceof OpenFoodFactsError && error.status === 503) {
-        searchError = "OpenFoodFacts est temporairement indisponible (503). Reessaie dans quelques secondes.";
+        searchError =
+          localProducts.length > 0
+            ? "OpenFoodFacts est temporairement indisponible (503). Resultats CIQUAL affiches."
+            : "OpenFoodFacts est temporairement indisponible (503). Reessaie dans quelques secondes.";
       } else {
-        searchError = "Impossible de recuperer les aliments pour le moment.";
+        searchError =
+          localProducts.length > 0
+            ? "OpenFoodFacts indisponible pour le moment. Resultats CIQUAL affiches."
+            : "Impossible de recuperer les aliments pour le moment.";
       }
     }
   }
@@ -64,7 +88,7 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
     <main className="mx-auto flex w-full max-w-5xl flex-col gap-6 px-6 py-10 md:px-10">
       <header className="space-y-2">
         <Badge className="rounded-full" variant="secondary">
-          OpenFoodFacts
+          OpenFoodFacts + CIQUAL local
         </Badge>
         <h1 className="text-3xl font-semibold tracking-tight">Recherche aliments</h1>
         <p className="text-muted-foreground">
@@ -91,7 +115,9 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
           <Card key={`${item.externalId}-${item.name}`}>
             <CardHeader>
               <CardTitle className="text-base">{item.name}</CardTitle>
-              <p className="text-sm text-muted-foreground">{item.brand ?? "Marque inconnue"}</p>
+              <p className="text-sm text-muted-foreground">
+                {item.brand ?? "Marque inconnue"} · {item.source === "custom" ? "CIQUAL" : "OpenFoodFacts"}
+              </p>
             </CardHeader>
             <CardContent className="space-y-2 text-sm text-muted-foreground">
               <p>Nutris (100g): {item.nutris}</p>
@@ -100,6 +126,7 @@ export default async function FoodsPage({ searchParams }: FoodsPageProps) {
               <p>Proteines: {item.proteinsG.toFixed(1)} g</p>
               <p>Fibres: {item.fiberG.toFixed(1)} g</p>
               <form action={addFromOpenFoodFactsAction} className="mt-2 space-y-2 rounded-lg border p-2">
+                <input type="hidden" name="source" value={item.source} />
                 <input type="hidden" name="name" value={item.name} />
                 <input type="hidden" name="brand" value={item.brand ?? ""} />
                 <input type="hidden" name="sourceExternalId" value={item.externalId} />

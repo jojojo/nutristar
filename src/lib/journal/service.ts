@@ -72,7 +72,7 @@ type CreateManualEntryInput = {
   name: string;
   brand?: string | null;
   sourceExternalId?: string | null;
-  source: "manual" | "openfoodfacts";
+  source: "manual" | "openfoodfacts" | "custom";
   quantityG: number;
   caloriesKcal100g: number;
   sugarG100g: number;
@@ -137,6 +137,14 @@ export async function createOpenFoodFactsMealEntry(input: BaseEntryInput) {
     ...input,
     source: "openfoodfacts",
   });
+}
+
+type CatalogEntryInput = BaseEntryInput & {
+  source: "openfoodfacts" | "custom";
+};
+
+export async function createCatalogMealEntry(input: CatalogEntryInput) {
+  await createMealEntry(input);
 }
 
 export async function deleteMealEntry(userId: string, entryId: string) {

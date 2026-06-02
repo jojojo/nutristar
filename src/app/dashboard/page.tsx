@@ -1,8 +1,10 @@
 import { Badge } from "@/components/ui/badge";
+import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { LogoutButton } from "@/components/auth/logout-button";
 import { requireAuthUser } from "@/lib/auth/session";
 import { getJournalForToday } from "@/lib/journal/service";
+import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -20,7 +22,15 @@ export default async function DashboardPage() {
         <p className="text-muted-foreground">
           Connecte en tant que {user.email}. Utilise le journal pour ajouter des entrees persistantes.
         </p>
-        <LogoutButton />
+        <div className="flex flex-wrap gap-2">
+          <Link href="/foods">
+            <Button>Ajouter un aliment</Button>
+          </Link>
+          <Link href="/journal">
+            <Button variant="outline">Voir le journal</Button>
+          </Link>
+          <LogoutButton />
+        </div>
       </header>
 
       <section className="grid gap-4 md:grid-cols-4">

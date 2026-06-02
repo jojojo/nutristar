@@ -43,6 +43,14 @@ Application web perso de suivi nutritionnel inspiree WW, avec systeme de points 
 	- persistance en source `openfoodfacts`
 	- recalcul automatique dashboard/journal apres ajout
 
+## Ce qui est implemente (iteration 4)
+
+- Base locale CIQUAL pour les aliments "nature" non transformes:
+	- import XML local vers PostgreSQL (`foods` + `food_nutrients`)
+	- 3484 aliments synchronises (commande d'import)
+	- recherche fusionnee dans `/foods`: CIQUAL local + OpenFoodFacts
+	- fallback automatique sur CIQUAL local si OpenFoodFacts est indisponible
+
 ## Lancer en local
 
 1. Copier les variables d'environnement:
@@ -64,7 +72,13 @@ npm run db:generate
 npm run db:migrate
 ```
 
-4. Lancer l'application:
+4. Importer CIQUAL dans la base locale:
+
+```bash
+npm run data:ciqual:import
+```
+
+5. Lancer l'application:
 
 ```bash
 npm run dev
@@ -88,6 +102,7 @@ Puis ouvrir `http://localhost:3000`.
 - `npm run db:migrate`: applique les migrations
 - `npm run db:push`: pousse le schema direct en base
 - `npm run db:studio`: ouvre Drizzle Studio
+- `npm run data:ciqual:import`: importe les XML CIQUAL dans la base locale
 
 ## Prochaines etapes
 

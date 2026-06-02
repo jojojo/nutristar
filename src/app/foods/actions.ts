@@ -1,6 +1,6 @@
 "use server";
 
-import { createOpenFoodFactsMealEntry } from "@/lib/journal/service";
+import { createCatalogMealEntry } from "@/lib/journal/service";
 import { requireAuthUser } from "@/lib/auth/session";
 import { revalidatePath } from "next/cache";
 import { z } from "zod";
@@ -8,6 +8,7 @@ import { z } from "zod";
 const mealTypeSchema = z.enum(["petit_dejeuner", "dejeuner", "diner", "collation"]);
 
 const addOffEntrySchema = z.object({
+  source: z.enum(["openfoodfacts", "custom"]),
   mealType: mealTypeSchema,
   name: z.string().trim().min(2).max(255),
   brand: z.string().trim().max(255).optional(),
@@ -24,6 +25,7 @@ export async function addFromOpenFoodFactsAction(formData: FormData) {
   const user = await requireAuthUser();
 
   const parsed = addOffEntrySchema.safeParse({
+    source: formData.get("source"),
     mealType: formData.get("mealType"),
     name: formData.get("name"),
     brand: formData.get("brand"),
@@ -40,7 +42,7 @@ export async function addFromOpenFoodFactsAction(formData: FormData) {
     throw new Error("Formulaire OpenFoodFacts invalide");
   }
 
-  await createOpenFoodFactsMealEntry({
+  await createCatalogMealEntry({
     userId: user.id,
     ...parsed.data,
   });

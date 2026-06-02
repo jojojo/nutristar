@@ -1,5 +1,6 @@
 import { calculateNutris } from "@/lib/nutris/calculate";
-import { searchProductsByName } from "@/lib/openfoodfacts/client";
+import { searchLocalFoodsByName } from "@/lib/foods/local-search";
+import { OpenFoodFactsError, searchProductsByName } from "@/lib/openfoodfacts/client";
 import { normalizeOffProduct } from "@/lib/openfoodfacts/normalize";
 import { z } from "zod";
 
@@ -24,22 +25,48 @@ export async function GET(request: Request) {
   }
 
   try {
-    const data = await searchProductsByName(parsed.data.q);
-    const products = (data.products ?? []).map((product) => {
-      const normalized = normalizeOffProduct(product);
+    const localProducts = (await searchLocalFoodsByName(parsed.data.q, 20)).map((product) => {
       const nutris = calculateNutris({
-        caloriesKcal: normalized.caloriesKcal,
-        saturatedFatG: normalized.saturatedFatG,
-        sugarG: normalized.sugarsG,
-        proteinG: normalized.proteinsG,
-        fiberG: normalized.fiberG,
+        caloriesKcal: product.caloriesKcal,
+        saturatedFatG: product.saturatedFatG,
+        sugarG: product.sugarsG,
+        proteinG: product.proteinsG,
+        fiberG: product.fiberG,
       });
 
       return {
-        ...normalized,
+        ...product,
         nutris,
       };
     });
+
+    let offProducts: Array<Record<string, unknown>> = [];
+
+    try {
+      const data = await searchProductsByName(parsed.data.q);
+      offProducts = (data.products ?? []).map((product) => {
+        const normalized = normalizeOffProduct(product);
+        const nutris = calculateNutris({
+          caloriesKcal: normalized.caloriesKcal,
+          saturatedFatG: normalized.saturatedFatG,
+          sugarG: normalized.sugarsG,
+          proteinG: normalized.proteinsG,
+          fiberG: normalized.fiberG,
+        });
+
+        return {
+          source: "openfoodfacts",
+          ...normalized,
+          nutris,
+        };
+      });
+    } catch (error) {
+      if (!(error instanceof OpenFoodFactsError)) {
+        throw error;
+      }
+    }
+
+    const products = [...localProducts, ...offProducts];
 
     return Response.json({
       total: products.length,
@@ -49,7 +76,7 @@ export async function GET(request: Request) {
   } catch (error) {
     return Response.json(
       {
-        error: "Impossible de contacter OpenFoodFacts.",
+        error: "Impossible de recuperer les aliments.",
         details: error instanceof Error ? error.message : "Unknown error",
       },
       { status: 502 }
