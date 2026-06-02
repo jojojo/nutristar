@@ -8,9 +8,52 @@ import { getWeightOverview } from "@/lib/weight/service";
 
 export const dynamic = "force-dynamic";
 
+function buildWeightChartPoints(entries: Array<{ measuredAt: string; weightKg: number }>) {
+  const chartEntries = [...entries].reverse().slice(-30);
+  if (chartEntries.length === 0) {
+    return null;
+  }
+
+  const width = 640;
+  const height = 220;
+  const padX = 20;
+  const padY = 20;
+
+  const values = chartEntries.map((entry) => entry.weightKg);
+  const minValue = Math.min(...values);
+  const maxValue = Math.max(...values);
+  const spread = Math.max(0.4, maxValue - minValue);
+  const low = minValue - spread * 0.15;
+  const high = maxValue + spread * 0.15;
+
+  const points = chartEntries.map((entry, index) => {
+    const xRange = width - padX * 2;
+    const yRange = height - padY * 2;
+    const x = chartEntries.length === 1 ? width / 2 : padX + (index * xRange) / (chartEntries.length - 1);
+    const ratio = (entry.weightKg - low) / (high - low);
+    const y = height - padY - ratio * yRange;
+
+    return {
+      x,
+      y,
+      label: entry.measuredAt,
+      value: entry.weightKg,
+    };
+  });
+
+  return {
+    width,
+    height,
+    points,
+    min: minValue,
+    max: maxValue,
+  };
+}
+
 export default async function WeightPage() {
   const user = await requireAuthUser();
   const { entries, stats } = await getWeightOverview(user.id);
+  const chart = buildWeightChartPoints(entries);
 
   const latestWeight = stats.latest?.weightKg ?? null;
   const totalDelta = stats.deltaTotal;
@@ -65,6 +108,64 @@ export default async function WeightPage() {
           </CardContent>
         </Card>
       </section>
+
+      <Card>
+        <CardHeader>
+          <CardTitle className="text-base">Courbe (30 dernieres mesures)</CardTitle>
+        </CardHeader>
+        <CardContent>
+          {!chart ? (
+            <p className="text-sm text-muted-foreground">Ajoute une premiere mesure pour afficher la courbe.</p>
+          ) : (
+            <div className="space-y-3">
+              <svg viewBox={`0 0 ${chart.width} ${chart.height}`} className="w-full rounded-lg border bg-muted/20">
+                <line
+                  x1="20"
+                  y1={chart.height - 20}
+                  x2={chart.width - 20}
+                  y2={chart.height - 20}
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  className="text-border"
+                />
+                <line
+                  x1="20"
+                  y1="20"
+                  x2="20"
+                  y2={chart.height - 20}
+                  stroke="currentColor"
+                  strokeWidth="1"
+                  className="text-border"
+                />
+                <polyline
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth="2.5"
+                  className="text-emerald-600"
+                  points={chart.points.map((p) => `${p.x},${p.y}`).join(" ")}
+                />
+                {chart.points.map((point) => (
+                  <circle
+                    key={`${point.label}-${point.value}`}
+                    cx={point.x}
+                    cy={point.y}
+                    r="3.5"
+                    fill="currentColor"
+                    className="text-emerald-700"
+                  >
+                    <title>{`${point.label}: ${point.value.toFixed(1)} kg`}</title>
+                  </circle>
+                ))}
+              </svg>
+
+              <div className="flex flex-wrap justify-between gap-2 text-xs text-muted-foreground">
+                <span>Min: {chart.min.toFixed(1)} kg</span>
+                <span>Max: {chart.max.toFixed(1)} kg</span>
+              </div>
+            </div>
+          )}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>
