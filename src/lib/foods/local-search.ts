@@ -1,6 +1,6 @@
 import { getDb } from "@/db/client";
 import { foodNutrients, foods } from "@/db/schema";
-import { and, asc, eq, ilike, like } from "drizzle-orm";
+import { and, asc, eq, ilike, like, sql } from "drizzle-orm";
 
 export type LocalSearchItem = {
   source: "custom";
@@ -19,6 +19,19 @@ export type LocalSearchItem = {
 export async function searchLocalFoodsByName(query: string, limit = 20): Promise<LocalSearchItem[]> {
   const db = getDb();
   const term = `%${query}%`;
+  const normalizedQuery = query.trim().toLowerCase();
+
+  const rankExpression = sql<number>`
+    case
+      when lower(${foods.name}) = ${normalizedQuery} then 0
+      when lower(${foods.name}) like (${normalizedQuery} || ' sans précision%') then 1
+      when lower(${foods.name}) like (${normalizedQuery} || ' %, crue%') then 2
+      when lower(${foods.name}) like (${normalizedQuery} || ' %') then 3
+      when lower(${foods.name}) like ('%' || ${normalizedQuery} || '%, crue%') then 4
+      when lower(${foods.name}) like ('%' || ${normalizedQuery} || '%') then 5
+      else 9
+    end
+  `;
 
   const rows = await db
     .select({
@@ -41,7 +54,7 @@ export async function searchLocalFoodsByName(query: string, limit = 20): Promise
         ilike(foods.name, term)
       )
     )
-    .orderBy(asc(foods.name))
+    .orderBy(rankExpression, asc(foods.name))
     .limit(limit);
 
   return rows.map((row) => {
